@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[5]:
-
-
 import networkx as nx
 import numpy as np
 import random
@@ -11,14 +8,12 @@ from datetime import datetime
 import numba
 from numba import jit
 
-
-# In[6]:
-
-
-# Function pour créer état initiale d'une ferme
-
 def create_initial_state(k, N0s, prop_infected_in_node):
-    #Random generation of initial states for k
+    
+    '''
+    Random generation of initial state for a herd k
+    '''
+    
     N0 = N0s[k]
     I0 = int(N0*prop_infected_in_node)
     S0 = N0 - I0
@@ -32,9 +27,6 @@ def create_initial_state(k, N0s, prop_infected_in_node):
                         0 ]                                   # R
     
     return np.array(initial_state_k)
-
-
-# In[7]:
 
 
 #Function that converts theta_ij into probabilities
