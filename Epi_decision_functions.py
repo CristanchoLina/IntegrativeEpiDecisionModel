@@ -8,45 +8,6 @@ import numba
 import pandas as pd
 import igraph
 
-#### Trade network functions definition #
-
-def create_edges_nbfils(L, power, tries = 1000000):  
-    
-    ''' Function for simulating a directed weighted powerlaw graph with weights = 1 all'''
-
-    # Generate de out-degree = in-degree sequence with the given power
-    p= list(1 / (np.array(range(1, L)))**power) 
-    p = p/sum(p)
-    out_degs = list(np..choice(range(1, L), L, replace = True, p = p))
-    
-    # We correct the degree sequence if its sum is odd
-    if (sum(out_degs) % 2 != 0):
-        out_degs[0] = out_degs[0] + 1 
-    
-    # Generate directed graph with the given out-degree = in-degree sequence 
-    g = igraph.Graph.Degree_Sequence(out_degs, out_degs, method="simple")
-    g = g.simplify(multiple=True, loops=True) # remove loops or multiple edges
-    
-    print('Power:', power)
-    g.es["weight"] = 1 # the graph is also weighted , the weights will later be modified
-
-    edges = []
-    weights = []
-    for e in g.es:
-        edges.append(e.tuple)
-        weights.append(e["weight"])
-    edges = np.array(edges)
-    weights = np.array(weights)
-    
-    # Array with list f edges and weights. Columns: i,j,theta_ij
-    theta_edges = np.hstack((edges, np.zeros((edges.shape[0], 1))))
-    theta_edges[:,2] = weights 
-    theta_edges = theta_edges.astype(float)
-    theta_edges[:,2] = 1
-    
-    return np.array(theta_edges)
-
-
 def proba_edges(L, theta_edges, delta):
     '''
     Function that converts theta_ij into probabilities
