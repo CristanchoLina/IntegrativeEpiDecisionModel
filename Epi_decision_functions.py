@@ -5,8 +5,6 @@
 import numpy as np
 import random
 import numba
-import pandas as pd
-import igraph
 
 def proba_edges(L, theta_edges, delta):
     '''
@@ -47,7 +45,7 @@ def create_initial_state(k, N0s, prop_infected_in_node):
 
 
 @numba.jit(nopython=True)
-def vec_multinomial(prob_matrix, sizes, res):
+def vec_multinomial(L, prob_matrix, sizes, res):
     '''
     Optimized function for drawing L multinomial samples, each with different probabilities
     for SIRstep_vectorized() function
@@ -57,7 +55,8 @@ def vec_multinomial(prob_matrix, sizes, res):
     return res 
 
 
-def SIRstep_vectorized(current_states, simul):
+def SIRstep_vectorized(L, current_states, capacities, demo_params, epid_params, fixed_epid_probas, thetas, 
+                       eff_reduceinfec, eff_protect, simul, delta):
     '''Fonction of a SIR step given the current states of all herds: '''
     N = np.sum(current_states, axis = 1)
     
@@ -130,7 +129,7 @@ def vec_exports_i(out_k, p_out_k):
     return res_k.T
 
 
-def vec_exports(thetas, probs_exports, outs):
+def vec_exports(L, thetas, probs_exports, outs):
     '''Optimized full fonction for assigning exports '''
     res = []
     for k in range(L):
@@ -142,13 +141,13 @@ def vec_exports(thetas, probs_exports, outs):
 
 # Functions for defining the decision mechanism
 
-def nothing(*args):
+def nothing(simul, L, *args):
     '''Farmers never vaccinate'''
     return np.zeros(L)
 
-def always(*args):
+def always(simul, L, *args):
      '''All Farmers vaccinate'''
-    return np.ones(L)
+     return np.ones(L)
 
 def draw(weights):
     '''Fonction for drawing an option according to weights'''
@@ -167,7 +166,7 @@ def log_exp_Sum(log_weights):
         exp_logw.append(np.exp(log_w))
     return np.log(sum(exp_logw))
 
-def expw(simul, L, mean_rewards, counts, vaccinators, non_vaccinators, relat_reward,decision_times,
+def expw(simul, L, mean_rewards, counts, vaccinators, non_vaccinators, relat_reward, decision_times,
          log_weights, kappas, *args):
     '''Expw mechanism'''
     #update log weights
@@ -229,12 +228,16 @@ def path(initial_states, demo_params, epid_params, eco_params, fixed_epid_probas
          neighbors_list, parents_list, probs_exports, duration_decision, eff_reduceinfec, eff_protect,
          thetas, delta, nb_steps, nexpw_params, theta_edges_compact,
          mechanism = 'neighb_expw'):
+    
     '''Fonction for epidemic-decision path for all herds'''
+    
     #Initialization
+    L = len(initial_states)
     all_states = np.zeros((nb_steps, L, 8), dtype=int) 
     all_states[0] = np.copy(initial_states) #Snv, SnvI, Inv , Sv, SvI, Iv , IR, R
     ventes_byfarm = np.zeros((nb_steps, L))
     achats_byfarm = np.zeros((nb_steps, L))
+    capacities = np.sum(initial_states, axis = 1)*1.5
     
     # Economic costs
     r, phi, cu_vacc, cf_vacc = eco_params
@@ -253,18 +256,18 @@ def path(initial_states, demo_params, epid_params, eco_params, fixed_epid_probas
     mean_rewards = np.array([[0., 0.]] * L) 
     relat_reward = np.zeros(L)
     vaccinators, non_vaccinators = [], []
-        
+   
     init_proba_vacc, kappa, rho = nexpw_params
     kappas = np.array([kappa] * L) 
-    
     #Convert probas to weights
     if init_proba_vacc == 1.:
         w_nv = 0.
         w_v = 1.   
     else: 
         w_v_w_nv = init_proba_vacc/(1.-init_proba_vacc)
-        w_nv = 2.
+        w_nv = 1.
         w_v = w_nv*w_v_w_nv
+        
     
     log_weights = np.array([[np.log(w_nv), np.log(w_v)]] * L) #prob de pas vacc, prob de vacc
     
@@ -277,8 +280,6 @@ def path(initial_states, demo_params, epid_params, eco_params, fixed_epid_probas
         decision_function = nothing
     elif mechanism == 'always':    
         decision_function = always
-    elif mechanism == 'expw':    
-        decision_function = expw
     elif mechanism == 'neighb_expw':    
         decision_function = neighb_expw
         
@@ -303,33 +304,35 @@ def path(initial_states, demo_params, epid_params, eco_params, fixed_epid_probas
     
                 nb_newinf = np.maximum(nb_newinf, 0)
                 reward_dec = -(cf_vacc + (cu_vacc*N_prev_decision))*prev_decision - (c_inf*nb_newinf)  
-                relat_reward = np.divide(reward_dec, N_prev_decision, out=np.zeros_like(reward_dec), where=N_prev_decision!=0)
+                relat_reward =  reward_dec/Nt_sum
                 vaccinators = np.where(prev_decision == 1.)
                 non_vaccinators = np.where(prev_decision == 0.)
                 
             #Take decision
-            decisions[simul] = decision_function(simul, L, mean_rewards, counts, vaccinators, non_vaccinators,
-                                                 relat_reward, decision_times, log_weights, kappas, rhos, prev_decision, theta_edges_compact)
-            weights = np.exp(log_weights)
-            probas = np.round(weights / np.sum(weights, axis = 1)[:,None], 2)
-            prob_vacc = probas[:,1]
-            prob_vacc   = prob_vacc[prob_vacc  != 1.]
-            
+            decisions[simul] = decision_function(simul, L, mean_rewards, counts, vaccinators, non_vaccinators, 
+                                                 relat_reward, decision_times, log_weights, kappas, rhos, prev_decision,
+                                                 theta_edges_compact)
+
             #Record decisions
             decisions_simul = decisions[simul]
             
             #Decisions are applied here 
             current_states = vaccinate(current_states, decisions_simul)
-    
+        
+        ###################################################################
         #Change states
         prev_N = np.sum(current_states, axis = 1)
-        current_states, outs = SIRstep_vectorized(current_states, simul)
+        current_states, outs = SIRstep_vectorized(L, current_states, capacities,
+                                                  demo_params, epid_params, fixed_epid_probas, thetas,
+                                                  eff_reduceinfec, eff_protect, simul, delta)
         ventes_byfarm[simul] = np.sum(outs, axis = 1)
-        
+        ###################################################################  
         #Assign exports
-        exports = np.concatenate(vec_exports(thetas, probs_exports, outs))
+        exports = np.concatenate(vec_exports(L, thetas, probs_exports, outs))
+        ####################################################################
     
         #Assign exports as imports
+        
         open_neighbors_indicator = ((capacities- prev_N)[neighbors_list] > 0) 
         
         imports =[]
@@ -337,7 +340,6 @@ def path(initial_states, demo_params, epid_params, eco_params, fixed_epid_probas
         for c in range(0, 5):
             souhait = ((capacities- prev_N)[neighbors_list])
             weights = open_neighbors_indicator* list(map(min, exports[:,c], souhait))
-            
             unsold = exports[:,c] - weights
             imports.append(np.bincount(neighbors_list, weights=weights))
             returns.append(np.bincount(parents_list, weights=unsold))
@@ -354,3 +356,4 @@ def path(initial_states, demo_params, epid_params, eco_params, fixed_epid_probas
         ventes_byfarm[simul] = ventes_byfarm[simul] - np.sum(modif_returns, axis = 1)
         
     return decision_times, decisions, all_states, ventes_byfarm, achats_byfarm
+
