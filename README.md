@@ -1,5 +1,5 @@
 # Supplementary material for the article *Integrative modelling of pathogen spread through animal trade by accounting for farmers’ control decisions* Cristancho-Fajardo, Ezanno, Vergu.
-Python Simulation Code 
+Python Simulation Code  for the article *Integrative modelling of pathogen spread through animal trade by accounting for farmers’ control decisions* Cristancho-Fajardo, Ezanno, Vergu.
 
 - The Epi_decision_function.py script gathers the main functions used in the generatation of the simulated epidemic and decision data presented in the article.
 - The fixed_parameters folder contains the fixed simulation setting, fixed network structure and fixed demographic parameters. As well as the notebook on their generation. 
