@@ -4,7 +4,7 @@ Python Simulation Code  for the article *Integrative modelling of pathogen sprea
 
 - The Epi_decision_function.py script gathers the main functions used in the generatation of the simulated epidemic and decision data presented in the article.
 - The fixed_parameters folder contains the fixed simulation setting, fixed network structure and fixed demographic parameters. As well as the notebook on their generation. 
-- The Vignette.ipynb is a jupyter-notebook in which after the model's parameters are initially established, a run of the integrative model is simulated, and plots display the epidemic and decision dynamcics.
+- The Vignette.ipynb is a jupyter-notebook in which after the model's parameters are initially established, we simulate the spread of the disease and the vaccination decisions taken by farmers, according to the decision-mechanism.
 
 Copyright or © or Copr. [INRAE]
 
