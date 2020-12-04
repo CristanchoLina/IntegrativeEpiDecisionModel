@@ -1,43 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-'''
-Copyright or © or Copr. [INRAE]
-
-Contributor(s) : [Lina Cristancho Fajardo]  ([2020])
-
-[lina.cristancho-fajardo@inrae.fr]
-
-This software is a computer program whose purpose is to simulate the stochastic spread of a pathogen on an animal trade-network,
-by generating farmer's control (vaccination) decisions on the pathogen's spread according to a certain decision mechanism. 
-
-This software is governed by the [CeCILL-B] license under French law and
-abiding by the rules of distribution of free software.  You can  use, 
-modify and/ or redistribute the software under the terms of the [CeCILL-B]
-license as circulated by CEA, CNRS and INRIA at the following URL
-"http://www.cecill.info". 
-
-As a counterpart to the access to the source code and  rights to copy,
-modify and redistribute granted by the license, users are provided only
-with a limited warranty  and the software's author,  the holder of the
-economic rights,  and the successive licensors  have only  limited
-liability. 
-
-In this respect, the user's attention is drawn to the risks associated
-with loading,  using,  modifying and/or developing or reproducing the
-software by the user in light of its specific status of free software,
-that may mean  that it is complicated to manipulate,  and  that  also
-therefore means  that it is reserved for developers  and  experienced
-professionals having in-depth computer knowledge. Users are therefore
-encouraged to load and test the software's suitability as regards their
-requirements in conditions enabling the security of their systems and/or 
-data to be ensured and,  more generally, to use and operate it in the 
-same conditions as regards security. 
-
-*The fact that you are presently reading this means that you have had
-knowledge of the [CeCILL-B] license and that you accept its terms.*
-'''
-
 # Import modules
 import numpy as np
 import random
@@ -59,7 +22,7 @@ def proba_edges(L, theta_edges, delta):
             p_out_k = np.array([0.0])
         proba_edges.append([k, sum_theta_k, p_out_k])
         
-    return np.array(proba_edges)
+    return np.array(proba_edges, dtype=object)
 
 
 #### Epidemic functions definition ####
@@ -111,8 +74,8 @@ def SIRstep_vectorized(L, current_states, capacities, demo_params, epid_params, 
     # Probabilities that change:
     
     # Probas for SNV
-    lambds = (betas_Inv*(Inv)/N) + (betas_Iv*(Iv)/N) 
-    lambds[np.isnan(lambds)] = 0.
+    transmi_rate = betas_Inv*(Inv) + betas_Iv*(Iv)
+    lambds = np.divide(transmi_rate ,N, out=np.zeros_like(transmi_rate), where=N!=0)
 
     Snv_rates = lambds + taus + thetas
     p_SnvInv = (1.0 - np.exp(-Snv_rates* delta))*lambds/Snv_rates 
@@ -120,7 +83,7 @@ def SIRstep_vectorized(L, current_states, capacities, demo_params, epid_params, 
     p_Snvout = (1.0 - np.exp(-Snv_rates * delta))*thetas/Snv_rates
 
     # Probas for SV
-    lambds_v = (1-eff_protect) * ( (betas_Inv*(Inv)/N) + (betas_Iv*(Iv)/N)) 
+    lambds_v = (1-eff_protect) * lambds
     lambds_v [np.isnan(lambds_v)] = 0.
 
     Sv_rates = lambds_v + taus + thetas
@@ -133,17 +96,17 @@ def SIRstep_vectorized(L, current_states, capacities, demo_params, epid_params, 
     p_Sv = np.array([p_SvIv, p_SvD, p_Svout, 1.0-(p_SvIv + p_SvD + p_Svout)]).T 
     
     # Draw from multinomials for each compartment:
-    B_sample = vec_multinomial(prob_matrix = p_B, sizes = N.astype(int), res = np.zeros(shape=(L,2)))
-    Snv_sample = vec_multinomial(prob_matrix = p_Snv, sizes = Snv.astype(int), res = np.zeros(shape=(L,4)))
-    Sv_sample = vec_multinomial(prob_matrix = p_Sv, sizes = Sv.astype(int), res = np.zeros(shape=(L,4)))
-    Inv_sample = vec_multinomial(prob_matrix = p_I, sizes = Inv.astype(int), res = np.zeros(shape=(L,4)))
-    Iv_sample = vec_multinomial(prob_matrix = p_I, sizes = Iv.astype(int),res = np.zeros(shape=(L,4)))
-    R_sample = vec_multinomial(prob_matrix = p_R, sizes = R.astype(int), res = np.zeros(shape=(L,3)))
+    B_sample = vec_multinomial(L, prob_matrix = p_B, sizes = N.astype(int), res = np.zeros(shape=(L,2)))
+    Snv_sample = vec_multinomial(L, prob_matrix = p_Snv, sizes = Snv.astype(int), res = np.zeros(shape=(L,4)))
+    Sv_sample = vec_multinomial(L, prob_matrix = p_Sv, sizes = Sv.astype(int), res = np.zeros(shape=(L,4)))
+    Inv_sample = vec_multinomial(L, prob_matrix = p_I, sizes = Inv.astype(int), res = np.zeros(shape=(L,4)))
+    Iv_sample = vec_multinomial(L, prob_matrix = p_I, sizes = Iv.astype(int),res = np.zeros(shape=(L,4)))
+    R_sample = vec_multinomial(L, prob_matrix = p_R, sizes = R.astype(int), res = np.zeros(shape=(L,3)))
     
     #Add samples and update counts in compartments:
     d_SnvI, d_SvI, d_InvR, d_IvR = Snv_sample[:, 0], Sv_sample[:,0], Inv_sample[:,0], Iv_sample[:,0]
     births =  B_sample[:,0] 
-    conditioned_births = (capacities - N > 0)*min(births, capacities - N) # Actual births are limited by herd capacity 
+    conditioned_births = (capacities - N > 0) * np.minimum(births, capacities - N)  # Actual births are limited by herd capacity 
     Snv = Snv_sample[:,3] + conditioned_births
     Sv = Sv_sample[:,3]
     Inv = Inv_sample[:,3] + d_SnvI
