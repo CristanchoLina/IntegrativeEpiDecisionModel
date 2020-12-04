@@ -5,19 +5,18 @@ Python Simulation Code
 - The fixed_parameters folder contains the fixed simulation setting, fixed network structure and fixed demographic parameters. As well as the notebook on their generation. 
 - The Vignette.ipynb is a jupyter-notebook in which after the model's parameters are initially established, a run of the integrative model is simulated, and plots display the epidemic and decision dynamcics.
 
-Copyright or © or Copr. [name of the author when individual or of the
-legal entity when the software has been created under wage-earning status
-adding underneath, if so required :" contributor(s) : [name of the
-individuals] ([date of creation])
+Copyright or © or Copr. [INRAE]
 
-[e-mail of the author(s)]
+Contributor(s) : [Lina Cristancho Fajardo]  ([2020])
+
+[lina.cristancho-fajardo@inrae.fr]
 
 This software is a computer program whose purpose is to [describe
 functionalities and technical features of your software].
 
-This software is governed by the [CeCILL|CeCILL-B|CeCILL-C] license under French law and
+This software is governed by the [CeCILL-B] license under French law and
 abiding by the rules of distribution of free software.  You can  use, 
-modify and/ or redistribute the software under the terms of the [CeCILL|CeCILL-B|CeCILL-C]
+modify and/ or redistribute the software under the terms of the [CeCILL-B]
 license as circulated by CEA, CNRS and INRIA at the following URL
 "http://www.cecill.info". 
 
@@ -38,5 +37,5 @@ requirements in conditions enabling the security of their systems and/or
 data to be ensured and,  more generally, to use and operate it in the 
 same conditions as regards security. 
 
-The fact that you are presently reading this means that you have had
-knowledge of the [CeCILL|CeCILL-B|CeCILL-C] license and that you accept its terms.
+*The fact that you are presently reading this means that you have had
+knowledge of the [CeCILL-B] license and that you accept its terms.*
