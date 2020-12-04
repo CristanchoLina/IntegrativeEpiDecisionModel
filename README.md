@@ -11,8 +11,7 @@ Contributor(s) : [Lina Cristancho Fajardo]  ([2020])
 
 [lina.cristancho-fajardo@inrae.fr]
 
-This software is a computer program whose purpose is to [describe
-functionalities and technical features of your software].
+This software is a computer program whose purpose is to simulate the stochastic spread of a pathogen on an animal trade-network, by generating farmer's control (vaccination) decisions on the pathogen's spread according to a certain decision mechanism. 
 
 This software is governed by the [CeCILL-B] license under French law and
 abiding by the rules of distribution of free software.  You can  use, 
