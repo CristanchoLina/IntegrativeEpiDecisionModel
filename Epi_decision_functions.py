@@ -16,8 +16,7 @@ def proba_edges(L, theta_edges, delta):
         theta_k = theta_edges[theta_edges[:,0] == k, 2]
         sum_theta_k = np.sum(theta_k)
         if sum_theta_k > 0:
-            p_out_k = ((1.0 - np.exp(-sum_theta_k * delta))*theta_k/sum_theta_k)[:-1]
-            p_out_k = np.append(p_out_k, 1 - np.sum(p_out_k))
+            p_out_k = theta_k/sum_theta_k
         else:
             p_out_k = np.array([0.0])
         proba_edges.append([k, sum_theta_k, p_out_k])
